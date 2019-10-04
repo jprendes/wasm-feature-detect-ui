@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
+    <meta name="Description" content="Detect what WebAssembly experimental features your browser supports">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>WebAssembly experimental features support</title>
+    <style>
+        body, html {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background: #FCFCFC;
+            font-family: sans-serif;
+        }
+        .error-msg:before {
+            content: ":(";
+            font-family: sans-serif;
+            color: #095fa5;
+            font-weight: bold;
+            display: block;
+            font-size: 5em;
+            margin: 10px 0;
+            margin-left: -0.1em;
+        }
+        .error-details {
+            margin-top: 5px;
+            font-size: 0.75em;
+            color: 444;
+        }
+    </style>
+</head>
+<body>
+<script src="./webcomponentsjs/webcomponents-loader.js"></Script>
+<script type="module">
+    import "./wasm-feature.js";
+    import "./wasm-feature-list.js";
+    import browserInfo from "https://cdn.pika.dev/browser-detect/v0.2";
+    import * as wasmFeatureDetect from "https://cdn.pika.dev/wasm-feature-detect";
+    
+    function main() {
+        const wasmFeatureInfo = {
+            bulkMemory: {
+                name: "Bulk memory operations",
+                url: "https://github.com/webassembly/bulk-memory-operations",
+                detect: wasmFeatureDetect.bulkMemory
+            },
+            exceptions: {
+                name: "Exception handling",
+                url: "https://github.com/WebAssembly/exception-handling",
+                detect: wasmFeatureDetect.exceptions
+            },
+            multiValue: {
+                name: "Multi-value",
+                url: "https://github.com/WebAssembly/multi-value",
+                detect: wasmFeatureDetect.multiValue
+            },
+            mutableGlobals: {
+                name: "Importable/Exportable mutable globals",
+                url: "",
+                detect: wasmFeatureDetect.mutableGlobals
+            },
+            referenceTypes: {
+                name: "Reference Types",
+                url: "https://github.com/WebAssembly/reference-types",
+                detect: wasmFeatureDetect.referenceTypes
+            },
+            saturatedFloatToInt: {
+                name: "Non-trapping float-to-int conversions",
+                url: "https://github.com/WebAssembly/nontrapping-float-to-int-conversions",
+                detect: wasmFeatureDetect.saturatedFloatToInt
+            },
+            signExtensions: {
+                name: "Sign-extension operators",
+                url: "https://github.com/WebAssembly/sign-extension-ops",
+                detect: wasmFeatureDetect.signExtensions
+            },
+            simd: {
+                name: "Fixed-Width SIMD",
+                url: "https://github.com/webassembly/simd",
+                detect: wasmFeatureDetect.simd
+            },
+            tailCall: {
+                name: "Tail call",
+                url: "https://github.com/webassembly/tail-call",
+                detect: wasmFeatureDetect.tailCall
+            },
+            threads: {
+                name: "Threads",
+                url: "https://github.com/webassembly/threads",
+                detect: wasmFeatureDetect.threads
+            }
+        }
+
+        const list = document.createElement("wasm-feature-list");
+        document.body.appendChild(list);
+
+        const browser = browserInfo();
+        list.setAttribute("browser", `${browser.name} ${browser.versionNumber|0}`);
+        
+        Object.entries(wasmFeatureDetect).map(
+            ([name, detect]) => wasmFeatureInfo[name] || {name, detect}
+        ).forEach(async ({name, url, detect}) => {
+            if (!detect)
+                return;
+
+            const node = document.createElement("wasm-feature");
+            list.appendChild(node);
+            node.setAttribute("name", name);
+            node.setAttribute("url", url);
+            node.setAttribute("status", "in-progress");
+
+            try {
+                node.setAttribute("status", await detect() ? "supported" : "not-supported");
+            } catch (e) {
+                node.setAttribute("status", "failed");
+            }
+        });
+    }
+    
+    try {
+        main();
+    } catch(e) {
+        const error = document.createElement("div");
+        error.classList.add("error-msg");
+        error.innerText = "Oups, something went wrong!";
+        document.body.appendChild(error);
+        
+        const details = document.createElement("div");
+        details.classList.add("error-details");
+        details.innerText = "Error: " + e.message;
+        error.appendChild(details);
+    }
+</script>
+</body>
+</html>
